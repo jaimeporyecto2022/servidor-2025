@@ -33,4 +33,6 @@ public class Nomina {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", insertable = false, updatable = false)
     private Usuario usuario;
+
+
 }

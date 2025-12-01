@@ -24,7 +24,7 @@ public class Tarea {
     private Date fechaFin;
 
     @Column(name = "fecha_creacion")
-    private LocalDateTime fechaCreacion;
+    private Date fechaCreacion;
 
     @Column(length = 20)
     private String estado = "pendiente";
