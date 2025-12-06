@@ -83,31 +83,68 @@ public class Selects {
 
     // ==================== LOGIN ====================
     public static void login(EntityManager em, PrintWriter out, String identificador, String password) {
+        System.out.println("=== INTENTO DE LOGIN ===");
+        System.out.println("Identificador: [" + identificador + "]");
+
         try {
-            String jpql = "SELECT u FROM Usuario u WHERE (u.nombre = :identificador OR u.mail = :identificador) AND u.password = :password";
+            String jpql = "SELECT u FROM Usuario u " +
+                    "WHERE LOWER(u.nombre) = LOWER(:identificador) " +
+                    "   OR LOWER(u.mail) = LOWER(:identificador)";
+
             TypedQuery<Usuario> query = em.createQuery(jpql, Usuario.class);
-            query.setParameter("identificador", identificador);
-            query.setParameter("password", password);
+            query.setParameter("identificador", identificador.trim());
 
             Usuario usuario = query.getSingleResult();
 
-            Integer idDepto = usuario.getIdDepartamento() != null ? usuario.getIdDepartamento() : 0;
+            // COMPROBAR CONTRASEÑA
+            if (!usuario.getPassword().equals(password)) {
+                out.println("LOGIN_ERROR" + SEP + "Contraseña incorrecta");
+                System.out.println("FALLO → contraseña incorrecta");
+                out.println("FIN_COMANDO");
+                return;
+            }
 
+            // OBTENER DEPARTAMENTO
+            String nombreDepartamento = "Sin departamento";
+            if (usuario.getIdDepartamento() != null && usuario.getIdDepartamento() != 0) {
+                try {
+                    Departamento depto = em.find(Departamento.class, usuario.getIdDepartamento());
+                    if (depto != null) nombreDepartamento = depto.getNombre();
+                } catch (Exception e) {
+                    System.out.println("Error cargando departamento: " + e.getMessage());
+                }
+            }
+
+            Integer idJefe = (usuario.getIdJefe() != null) ? usuario.getIdJefe() : 0;
+
+            // ENVIAR RESPUESTA CORRECTA
             out.println("LOGIN_OK" + SEP +
                     usuario.getId() + SEP +
                     usuario.getNombre() + SEP +
                     usuario.getMail() + SEP +
-                    (usuario.getRol() != null ? usuario.getRol().toUpperCase() : "EMPLEADO") + SEP +
-                    idDepto); // ← NUEVO: ID del departamento
+                    usuario.getRol() + SEP +
+                    usuario.getIdDepartamento() + SEP +
+                    nombreDepartamento + SEP +
+                    idJefe + SEP +
+                    usuario.getFechaAlta() + SEP +
+                    (usuario.getDireccion() != null ? usuario.getDireccion() : ""));
+
+            System.out.println("LOGIN EXITOSO → " + usuario.getNombre() + " | " + usuario.getRol());
 
         } catch (NoResultException e) {
-            out.println("LOGIN_ERROR" + SEP + "Credenciales incorrectas");
-        } catch (Exception e) {
-            out.println("LOGIN_ERROR" + SEP + "Error interno del servidor");
-        }
-        out.println("FIN_COMANDO");
-    }
+            out.println("LOGIN_ERROR" + SEP + "Usuario no encontrado");
+            System.out.println("FALLO → usuario no existe");
 
+        } catch (Exception e) {
+            e.printStackTrace();
+            out.println("LOGIN_ERROR" + SEP + "Error del servidor");
+            System.out.println("ERROR CRÍTICO EN LOGIN");
+
+        } finally {
+            // SOLO UN FIN_COMANDO → SIEMPRE AL FINAL
+            out.println("FIN_COMANDO");
+        }
+    }
     // ==================== Tareas asignadas al usuario ====================
     public static void enviarTareasDeUsuario(EntityManager em, PrintWriter out, int idUsuarioAsignado) {
         try {

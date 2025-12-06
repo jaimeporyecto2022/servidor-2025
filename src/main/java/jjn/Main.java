@@ -47,8 +47,9 @@ public class Main {
     }
     private static void procesarComando(String cmd, PrintWriter out) {
         EntityManager em = emf.createEntityManager();
+        System.out.println(cmd);
         try {
-            String[] partes = cmd.split("\\|", -1);
+            String[] partes = cmd.split(SEP, -1);
 
             switch (partes[0].toUpperCase()) {
                 //======================= SELECTS===============================

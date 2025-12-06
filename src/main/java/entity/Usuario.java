@@ -14,7 +14,7 @@ public class Usuario {
     private String direccion;
     private String mail;
     private String password;
-    private String rol = "empleado";
+    private String rol;
 
     @Column(name = "fecha_alta")
     private java.sql.Date fechaAlta;
