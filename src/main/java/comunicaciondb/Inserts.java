@@ -12,10 +12,6 @@ public class Inserts {
 
     private static final String SEP = "@Tr&m";
 
-    /**
-     * INSERTAR NUEVO USUARIO
-     * @param nombre, mail, password (en texto plano), rol, idDepartamento
-     */
     public static void insertarUsuario(EntityManager em, PrintWriter out,
                                        String nombre, String mail, String password,
                                        String rol, Integer idDepartamento) {
@@ -42,19 +38,12 @@ public class Inserts {
             em.persist(nuevo);
             em.getTransaction().commit();
 
-            out.println("INSERT_USUARIO_OK" + SEP + nuevo.getId() + SEP + nuevo.getNombre());
 
         } catch (Exception e) {
             em.getTransaction().rollback();
-            out.println("INSERT_USUARIO_ERROR" + SEP + "Error: " + e.getMessage());
         }
-        out.println("FIN_COMANDO");
     }
 
-    /**
-     * INSERTAR NÓMINA PARA UN USUARIO
-     * @param idUsuario, mes (ej: "2025-11"), sueldoBase, extras, deducciones
-     */
     public static void insertarNomina(EntityManager em, PrintWriter out,
                                       int idUsuario,
                                       BigDecimal importe,
@@ -81,29 +70,23 @@ public class Inserts {
             Nomina nomina = new Nomina();
             nomina.setImporte(importe);
             nomina.setFecha(java.sql.Date.valueOf(LocalDate.now())); // hoy
-            nomina.setConcepto(concepto.trim());
-            nomina.setTipo(tipo.trim().toLowerCase());
+            nomina.setConcepto(concepto);
+            nomina.setTipo(tipo.toLowerCase());
             nomina.setIdUsuario(idUsuario);
 
             em.persist(nomina);
             em.getTransaction().commit();
 
-            out.println("INSERT_NOMINA_OK" + SEP +
-                    nomina.getId() + SEP +
-                    usuario.getNombre() + SEP +
-                    importe + SEP +
-                    tipo.toUpperCase() + SEP +
-                    concepto);
+
 
         } catch (Exception e) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            out.println("INSERT_NOMINA_ERROR" + SEP + "Error: " + e.getMessage());
         }
-        out.println("FIN_COMANDO");
     }
+
     public static void insertarTarea(EntityManager em, PrintWriter out,
                                      int idCreador, int idAsignado,
-                                     String informacion, String fechaInicio, String fechaFin) {
+                                     String informacion, String fechaInicio, String fechaFin,String estado,String titulo) {
         em.getTransaction().begin();
         try {
             Usuario creador = em.find(Usuario.class, idCreador);
@@ -127,6 +110,8 @@ public class Inserts {
             tarea.setIdUsuarioCreador(idCreador);
             tarea.setIdUsuarioAsignado(idAsignado);
             tarea.setInformacion(informacion.trim());
+            tarea.setEstado(estado);
+            tarea.setTitulo(titulo);
 
             // Fecha de creación: HOY (segura)
             tarea.setFechaCreacion(java.sql.Date.valueOf(LocalDate.now()));
@@ -140,15 +125,10 @@ public class Inserts {
             em.persist(tarea);
             em.getTransaction().commit();
 
-            out.println("INSERT_TAREA_OK" + SEP +
-                    tarea.getId() + SEP +
-                    "from " + creador.getNombre() + " to " + asignado.getNombre());
 
         } catch (Exception e) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            out.println("INSERT_TAREA_ERROR" + SEP + "Error: " + e.getMessage());
         }
-        out.println("FIN_COMANDO");
     }
 
     public static java.sql.Date parsearFechaSqlSegura(String fechaStr) {

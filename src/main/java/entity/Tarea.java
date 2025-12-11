@@ -26,14 +26,17 @@ public class Tarea {
     @Column(name = "fecha_creacion")
     private Date fechaCreacion;
 
-    @Column(length = 20)
-    private String estado = "pendiente";
+    @Column(name ="estado")
+    private String estado;
 
     @Column(name = "id_usuario_creador", nullable = false)
     private Integer idUsuarioCreador;
 
     @Column(name = "id_usuario_asignado", nullable = false)
     private Integer idUsuarioAsignado;
+
+    @Column(name = "titulo")
+    private String titulo;
 
     // Relaciones
     @ManyToOne(fetch = FetchType.LAZY)

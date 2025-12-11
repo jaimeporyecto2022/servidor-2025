@@ -6,8 +6,13 @@ import java.io.*;
 import java.net.*;
 import java.math.BigDecimal;
 
+import static comunicaciondb.Inserts.insertarTarea;
+import static comunicaciondb.Selects.listarUsuariosSimple;
+import static comunicaciondb.Updates.actualizarTarea;
+
 public class Main {
-    private static final String SEP = "@Tr&m";
+    public static final String SEP = "@Tr&m";
+    public static final String JUMP = "@Jump";
     private static final int PUERTO = 5000;
     private static EntityManagerFactory emf;
     public static void main(String[] args) {//TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
@@ -47,7 +52,7 @@ public class Main {
     }
     private static void procesarComando(String cmd, PrintWriter out) {
         EntityManager em = emf.createEntityManager();
-        System.out.println(cmd);
+        System.out.println("procesarComando"+cmd);
         try {
             String[] partes = cmd.split(SEP, -1);
 
@@ -58,6 +63,10 @@ public class Main {
                     String pass = partes[2];
                     Selects.login(em, out, user, pass);
 
+                }
+
+                case "USUARIOS_SIMPLE" -> {
+                    listarUsuariosSimple(em, out);
                 }
 
                 case "USUARIOS_DEP" -> {
@@ -83,8 +92,13 @@ public class Main {
                     Selects.enviarTareasCreadasPorUsuario(em, out, idCreador);
 
                 }
+                case "NOMINAS_USUARIO" -> {
+                    int id=Integer.parseInt(partes[1]);
+                    Selects.listarNominasUsuario(em, out,id);
 
-                //================================ INSERTS=================================
+                }
+
+                //============================================================================================INSERTS=================================
 
                 case "CREAR_USUARIO" -> {
                     String nombre = partes[1];
@@ -96,7 +110,7 @@ public class Main {
 
                 }
 
-                case "CREAR_NOMINA" -> {
+                case "INSERT_NOMINA" -> {
                     Inserts.insertarNomina(
                             em,
                             out,
@@ -107,13 +121,29 @@ public class Main {
                     );
                 }
 
-                case "CREAR_TAREA" -> {
-                    int creador = Integer.parseInt(partes[1]);
-                    int asignado = Integer.parseInt(partes[2]);
-                    String info = partes[3];
-                    String fIni = partes.length > 4 ? partes[4] : null;
-                    String fFin = partes.length > 5 ? partes[5] : null;
-                    Inserts.insertarTarea(em, out, creador, asignado, info, fIni, fFin);
+                case "INSERT_TAREA" -> {
+                    insertarTarea(em, out,
+                            Integer.parseInt(partes[1]),
+                            Integer.parseInt(partes[2]),
+                            partes[3],
+                            partes[4],
+                            partes[5],
+                            partes[6],
+                            partes[7]
+                    );
+
+                }
+                case "UPDATE_TAREA" -> {
+                    actualizarTarea(em, out,
+                            Integer.parseInt(partes[1]),
+                            Integer.parseInt(partes[2]),
+                            Integer.parseInt(partes[3]),
+                            partes[4],
+                            partes[5],
+                            partes[6],
+                            partes[7],
+                            partes[8]
+                    );
 
                 }
 
@@ -129,7 +159,7 @@ public class Main {
                             informacion, estado, fIni, fFin
                     );
                 }
-                //======================================= DELETE =======================================
+                //======================================= DELETE ===========================================================================
                 case "ELIMINAR_USUARIO" -> {
                     Deletes.eliminarUsuario(em, out, Integer.parseInt(partes[1]));
                 }
@@ -159,26 +189,17 @@ public class Main {
                             nombre, email, pass, rol, depto
                     );
                 }
-                case "ACTUALIZAR_TAREA" -> {
-                    String info = partes.length > 2 && !partes[2].isEmpty() ? partes[2] : null;
-                    String estado = partes.length > 3 && !partes[3].isEmpty() ? partes[3] : null;
-                    String fIni = partes.length > 4 && !partes[4].isEmpty() ? partes[4] : null;
-                    String fFin = partes.length > 5 && !partes[5].isEmpty() ? partes[5] : null;
-                    Integer nuevoAsignado = partes.length > 6 && !partes[6].isEmpty() ? Integer.parseInt(partes[6]) : null;
 
-                    Updates.actualizarTarea(em, out,
-                            Integer.parseInt(partes[1]),
-                            info, estado, fIni, fFin, nuevoAsignado
-                    );
-                }
-                case "ACTUALIZAR_NOMINA" -> {
+                case "UPDATE_NOMINA" -> {
                     BigDecimal importe = partes.length > 2 && !partes[2].isEmpty() ? new BigDecimal(partes[2]) : null;
                     String concepto = partes.length > 3 && !partes[3].isEmpty() ? partes[3] : null;
                     String tipo = partes.length > 4 && !partes[4].isEmpty() ? partes[4] : null;
 
                     Updates.actualizarNomina(em, out,
                             Integer.parseInt(partes[1]),
-                            importe, concepto, tipo
+                            importe,
+                            concepto,
+                            tipo
                     );
                 }
                 case "ACTUALIZAR_REPORTE" -> {

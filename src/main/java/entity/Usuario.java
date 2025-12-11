@@ -9,7 +9,6 @@ import lombok.*;
 public class Usuario {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-
     private String nombre;
     private String direccion;
     private String mail;
@@ -22,6 +21,4 @@ public class Usuario {
     @Column(name = "iddepartamento")
     private Integer idDepartamento;
 
-    @Column(name = "idjefe")
-    private Integer idJefe;
 }

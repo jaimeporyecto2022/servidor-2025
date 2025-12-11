@@ -6,16 +6,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static comunicaciondb.Inserts.parsearFechaSqlSegura;
+
 public class Updates {
     private static final String SEP = "@Tr&m";
 
     public static void actualizarTarea(EntityManager em, PrintWriter out,
-                                       int idTarea,
-                                       String nuevaInformacion,
-                                       String nuevoEstado,
-                                       String fechaInicioStr,
-                                       String fechaFinStr,
-                                       Integer nuevoIdAsignado) {  // puede ser null si no se cambia
+                                       int idTarea,int idCreador, int idAsignado,
+                                       String informacion, String fechaInicio, String fechaFin,String estado,String titulo) {  // puede ser null si no se cambia
         em.getTransaction().begin();
         try {
             Tarea tarea = em.find(Tarea.class, idTarea);
@@ -25,53 +23,23 @@ public class Updates {
                 out.println("FIN_COMANDO");
                 return;
             }
-
-            // === Información ===
-            if (nuevaInformacion != null && !nuevaInformacion.trim().isEmpty()) {
-                tarea.setInformacion(nuevaInformacion.trim());
-            }
-
-            // === Estado ===
-            if (nuevoEstado != null && !nuevoEstado.isEmpty()) {
-                String estado = nuevoEstado.trim();
-                if (List.of("pendiente", "No puedo hacerlo", "imposible", "completado").contains(estado)) {
-                    tarea.setEstado(estado);
-                } else {
-                    out.println("UPDATE_TAREA_ERROR" + SEP + "Estado inválido");
-                    em.getTransaction().rollback();
-                    out.println("FIN_COMANDO");
-                    return;
-                }
-            }
-
-            tarea.setFechaInicio(Inserts.parsearFechaSqlSegura(fechaInicioStr));
-            tarea.setFechaFin(Inserts.parsearFechaSqlSegura(fechaFinStr));
-
-            // === Reasignar a otro usuario ===
-            if (nuevoIdAsignado != null) {
-                Usuario nuevoAsignado = em.find(Usuario.class, nuevoIdAsignado);
-                if (nuevoAsignado == null) {
-                    out.println("UPDATE_TAREA_ERROR" + SEP + "Usuario asignado no existe");
-                    em.getTransaction().rollback();
-                    out.println("FIN_COMANDO");
-                    return;
-                }
-                tarea.setIdUsuarioAsignado(nuevoIdAsignado);
-            }
+            Usuario user;
+            tarea.setInformacion(informacion);
+            tarea.setTitulo(titulo);
+            //tarea.setCreador(idCreador);//no tiene sentido modificar el creador
+            tarea.setIdUsuarioAsignado(idAsignado);
+            tarea.setEstado(estado);
+            tarea.setFechaInicio(parsearFechaSqlSegura(fechaInicio));
+            tarea.setFechaFin(parsearFechaSqlSegura(fechaFin));
 
             em.merge(tarea);
             em.getTransaction().commit();
 
-            out.println("UPDATE_TAREA_OK" + SEP +
-                    tarea.getId() + SEP +
-                    tarea.getInformacion().substring(0, Math.min(50, tarea.getInformacion().length())) + "..." + SEP +
-                    tarea.getEstado().toUpperCase());
 
         } catch (Exception e) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            out.println("UPDATE_TAREA_ERROR" + SEP + "Error: " + e.getMessage());
+            //out.println("UPDATE_TAREA_ERROR" + SEP + "Error: " + e.getMessage());
         }
-        out.println("FIN_COMANDO");
     }
 
 
@@ -229,18 +197,11 @@ public class Updates {
 
             Usuario usuario = em.find(Usuario.class, nomina.getIdUsuario());
 
-            out.println("UPDATE_NOMINA_OK" + SEP +
-                    nomina.getId() + SEP +
-                    (usuario != null ? usuario.getNombre() : "Desconocido") + SEP +
-                    nomina.getImporte() + SEP +
-                    nomina.getTipo().toUpperCase() + SEP +
-                    nomina.getConcepto());
 
         } catch (Exception e) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
             out.println("UPDATE_NOMINA_ERROR" + SEP + "Error: " + e.getMessage());
         }
-        out.println("FIN_COMANDO");
     }
 
     public static void actualizarReporteConSync(EntityManager em, PrintWriter out,
@@ -290,8 +251,8 @@ public class Updates {
             }
 
             // FECHAS (seguras)
-            java.sql.Date fIni = Inserts.parsearFechaSqlSegura(fechaInicioStr);
-            java.sql.Date fFin = Inserts.parsearFechaSqlSegura(fechaFinStr);
+            java.sql.Date fIni = parsearFechaSqlSegura(fechaInicioStr);
+            java.sql.Date fFin = parsearFechaSqlSegura(fechaFinStr);
             if (fIni != null || fFin != null) {
                 reporte.setFechaInicio(fIni);
                 reporte.setFechaFin(fFin);
@@ -308,18 +269,12 @@ public class Updates {
             em.merge(reporte);
             em.getTransaction().commit();
 
-            // Respuesta con estado actualizado
-            out.println("UPDATE_REPORTE_OK" + SEP +
-                    reporte.getId() + SEP +
-                    reporte.getIdTarea() + SEP +
-                    reporte.getEstado().toUpperCase() + SEP +
-                    "Tarea sincronizada");
+
 
         } catch (Exception e) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
             out.println("UPDATE_REPORTE_ERROR" + SEP + "Error: " + e.getMessage());
         }
-        out.println("FIN_COMANDO");
     }
 
 }
