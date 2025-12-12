@@ -14,7 +14,9 @@ public class Inserts {
 
     public static void insertarUsuario(EntityManager em, PrintWriter out,
                                        String nombre, String mail, String password,
-                                       String rol, Integer idDepartamento) {
+                                       String rol, String nombredep, String direccion) {
+        System.out.println(nombre + mail + password + rol + nombredep + direccion);
+        int idDepartamento;
         em.getTransaction().begin();
         try {
             // Validar que el mail no exista ya
@@ -22,18 +24,21 @@ public class Inserts {
                     "SELECT COUNT(u) FROM Usuario u WHERE u.mail = :mail", Long.class);
             queryMail.setParameter("mail", mail);
             if (queryMail.getSingleResult() > 0) {
-                out.println("INSERT_USUARIO_ERROR" + SEP + "El email ya está registrado");
-                em.getTransaction().rollback();
-                out.println("FIN_COMANDO");
                 return;
             }
+            TypedQuery<Integer> qDep = em.createQuery(
+                    "SELECT d.id FROM Departamento d WHERE d.nombre = :nombre", Integer.class);
+            qDep.setParameter("nombre", nombredep);
+            idDepartamento = qDep.getSingleResult();
 
             Usuario nuevo = new Usuario();
+            nuevo.setFechaAlta(java.sql.Date.valueOf(LocalDate.now()));
             nuevo.setNombre(nombre.trim());
             nuevo.setMail(mail.trim().toLowerCase());
             nuevo.setPassword(password); // En producción: BCrypt
             nuevo.setRol(rol != null ? rol.trim().toLowerCase() : "empleado");
             nuevo.setIdDepartamento(idDepartamento);
+            nuevo.setDireccion(direccion);
 
             em.persist(nuevo);
             em.getTransaction().commit();
@@ -41,6 +46,7 @@ public class Inserts {
 
         } catch (Exception e) {
             em.getTransaction().rollback();
+            System.out.println(e);
         }
     }
 
@@ -146,9 +152,7 @@ public class Inserts {
                                                        int idUsuarioReporte,
                                                        int idTarea,
                                                        String informacion,
-                                                       String estadoStr,
-                                                       String fechaInicioStr,
-                                                       String fechaFinStr) {
+                                                       String estadoStr) {
         em.getTransaction().begin();
         try {
             // Validar usuario y tarea
@@ -183,26 +187,25 @@ public class Inserts {
             reporte.setIdTarea(idTarea);
             reporte.setInformacion(informacion != null ? informacion.trim() : "");
             reporte.setEstado(estado);
-            reporte.setFechaInicio(parsearFechaSqlSegura(fechaInicioStr));
-            reporte.setFechaFin(parsearFechaSqlSegura(fechaFinStr));
+            reporte.setFechacreacion(java.sql.Date.valueOf(LocalDate.now()));
 
             em.persist(reporte);
+            if (tarea.getEstado().equals("completado")) {
+                System.out.println("nuevatarea en supuestamente tarea completada");
+            }else {
+                tarea.setEstado(reporte.getEstado());
+            }
+
 
             // ACTUALIZAR ESTADO DE LA TAREA AL MISMO DEL REPORTE
-            tarea.setEstado(estado);
             em.merge(tarea);
 
             em.getTransaction().commit();
 
-            out.println("REPORTE_OK" + SEP +
-                    reporte.getId() + SEP +
-                    tarea.getId() + SEP +
-                    "Tarea #" + tarea.getId() + " ahora: " + estado.toUpperCase());
 
         } catch (Exception e) {
             if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            out.println("REPORTE_ERROR" + SEP + "Error: " + e.getMessage());
+
         }
-        out.println("FIN_COMANDO");
     }
 }

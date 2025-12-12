@@ -82,10 +82,13 @@ public class Main {
                     int idUsuario = Integer.parseInt(partes[1]);
                     Selects.enviarTareasDeUsuario(em, out, idUsuario);
                 }
-                case "MIS_REPORTES" -> {
-                    int idCreador = Integer.parseInt(partes[1]);
-                    Selects.enviarReportesCreadosPorUsuario(em, out, idCreador);
+                case "REPORTES" -> {
+                    int idTarea = Integer.parseInt(partes[1]);
+                    Selects.reportesTarea(em, out, idTarea);
 
+                }
+                case "LISTAR_DEPARTAMENTOS_SIMPLE" -> {
+                    Selects.listarDepartamentosSimple(em, out);
                 }
                 case "MIS_TAREAS_CREADAS" -> {
                     int idCreador = Integer.parseInt(partes[1]);
@@ -105,8 +108,10 @@ public class Main {
                     String mail = partes[2];
                     String pass = partes[3];
                     String rol = partes.length > 4 ? partes[4] : null;
-                    Integer depto = partes.length > 5 ? Integer.parseInt(partes[5]) : null;
-                    Inserts.insertarUsuario(em, out, nombre, mail, pass, rol, depto);
+                    String depto = partes.length > 5 ? (partes[5]) : null;
+                    String direccion= partes.length > 6 ? (partes[6]) : null;
+
+                    Inserts.insertarUsuario(em, out, nombre, mail, pass, rol, depto, direccion);
 
                 }
 
@@ -156,8 +161,7 @@ public class Main {
                     Inserts.insertarReporteYActualizarTarea(em, out,
                             Integer.parseInt(partes[1]),
                             Integer.parseInt(partes[2]),
-                            informacion, estado, fIni, fFin
-                    );
+                            informacion, estado);
                 }
                 //======================================= DELETE ===========================================================================
                 case "ELIMINAR_USUARIO" -> {
@@ -189,6 +193,17 @@ public class Main {
                             nombre, email, pass, rol, depto
                     );
                 }
+                case "UPDATE_USUARIO" -> {
+                    int id = Integer.parseInt(partes[1]);
+                    String nombre = partes[2];
+                    String mail = partes[3];
+                    String rol = partes[4];
+                    String nombreDep = partes[5];
+                    String direccion = partes[6];
+
+                    Updates.actualizarUsuario(em, out, id, nombre, mail, rol, nombreDep, direccion);
+                }
+
 
                 case "UPDATE_NOMINA" -> {
                     BigDecimal importe = partes.length > 2 && !partes[2].isEmpty() ? new BigDecimal(partes[2]) : null;
@@ -202,7 +217,10 @@ public class Main {
                             tipo
                     );
                 }
+                /*he decidido que los reportes no se puedan editar para que sean una serie de
+                elementos inmutables dentro de una tarea y queden todos registrados
                 case "ACTUALIZAR_REPORTE" -> {
+
                     String info = partes.length > 2 && !partes[2].isEmpty() ? partes[2] : null;
                     String estado = partes.length > 3 && !partes[3].isEmpty() ? partes[3] : null;
                     String fIni = partes.length > 4 && !partes[4].isEmpty() ? partes[4] : null;
@@ -212,7 +230,7 @@ public class Main {
                             Integer.parseInt(partes[1]),
                             info, estado, fIni, fFin
                     );
-                }
+                }*/
             };
         } catch (Exception e) {
 

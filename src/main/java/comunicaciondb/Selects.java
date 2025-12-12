@@ -6,6 +6,7 @@ import jjn.Main;
 
 import java.io.PrintWriter;
 import java.util.List;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class Selects {
 
@@ -128,14 +129,11 @@ public class Selects {
 
             Usuario usuario = query.getSingleResult();
 
-            // COMPROBAR CONTRASEÑA
-            if (!usuario.getPassword().equals(password)) {
-                out.println("LOGIN_ERROR" + SEP + "Contraseña incorrecta");
-                System.out.println("FALLO → contraseña incorrecta");
-                out.println("FIN_COMANDO");
+            boolean ok = BCrypt.checkpw(password, usuario.getPassword());
+            if (!ok) {
+                System.out.println(usuario.getPassword()+password);
                 return;
             }
-
             // OBTENER DEPARTAMENTO
             String nombreDepartamento = "Sin departamento";
             if (usuario.getIdDepartamento() != null && usuario.getIdDepartamento() != 0) {
@@ -215,8 +213,6 @@ public class Selects {
         try {
             Usuario asignado = em.find(Usuario.class, idUsuarioAsignado);
             if (asignado == null) {
-                out.println("TAREAS_ERROR" + SEP + "Usuario con ID " + idUsuarioAsignado + " no existe");
-                out.println("FIN_COMANDO");
                 return;
             }
 
@@ -227,9 +223,9 @@ public class Selects {
             List<Tarea> tareas = query.getResultList();
 
             if (tareas.isEmpty()) {
-                out.println("TAREAS_OK" + SEP + "0" + SEP + asignado.getNombre() + " no tiene tareas asignadas");
+                //out.println("TAREAS_OK" + SEP + "0" + SEP + asignado.getNombre() + " no tiene tareas asignadas");
             } else {
-                out.println("TAREAS_OK" + SEP + tareas.size());
+                //out.println("TAREAS_OK" + SEP + tareas.size());
 
                 for (Tarea t : tareas) {
                     Usuario creador = em.find(Usuario.class, t.getIdUsuarioCreador());
@@ -244,7 +240,7 @@ public class Selects {
                                     (t.getFechaInicio() != null ? t.getFechaInicio() : "Sin fecha") + SEP +
                                     (t.getFechaFin() != null ? t.getFechaFin() : "Sin fecha") + SEP +
                                     t.getEstado().toUpperCase() + SEP +
-                                    responsable
+                                    responsable + Main.JUMP
                     );
                 }
             }
@@ -260,8 +256,7 @@ public class Selects {
         try {
             Usuario creador = em.find(Usuario.class, idUsuarioCreador);
             if (creador == null) {
-                out.println("TAREAS_CREADAS_ERROR" + SEP + "Usuario no encontrado");
-                out.println("FIN_COMANDO");
+
                 return;
             }
             String jpql = """
@@ -305,61 +300,63 @@ public class Selects {
     }
 
     // ==================== reportes creados por el usuario ====================
-    public static void enviarReportesCreadosPorUsuario(EntityManager em, PrintWriter out, int idUsuarioCreador) {
+    public static void reportesTarea(EntityManager em, PrintWriter out, int idTarea) {
         try {
-            // Verificar que el usuario existe
-            Usuario creador = em.find(Usuario.class, idUsuarioCreador);
-            if (creador == null) {
-                out.println("REPORTES_CREADOS_ERROR" + SEP + "Usuario no existe");
-                out.println("FIN_COMANDO");
-                return;
-            }
 
             String jpql = """
-                SELECT r FROM Reporte r 
-                WHERE r.idUsuarioReporte = :idCreador 
-                ORDER BY r.fechaInicio DESC
-                """;
+            SELECT r, u.nombre
+            FROM Reporte r
+            JOIN r.usuario u
+            WHERE r.idTarea = :idTarea
+            ORDER BY r.fechacreacion DESC
+            """;
 
-            TypedQuery<Reporte> query = em.createQuery(jpql, Reporte.class);
-            query.setParameter("idCreador", idUsuarioCreador);
+            List<Object[]> resultados = em.createQuery(jpql, Object[].class)
+                    .setParameter("idTarea", idTarea)
+                    .getResultList();
 
-            List<Reporte> reportes = query.getResultList();
+            for (Object[] fila : resultados) {
+                Reporte r = (Reporte) fila[0];
+                String nombreUsuario = (String) fila[1];
 
-            if (reportes.isEmpty()) {
-                out.println("REPORTES_CREADOS_OK" + SEP + "0" + SEP + creador.getNombre() + " no ha creado reportes");
-            } else {
-                out.println("REPORTES_CREADOS_OK" + SEP + reportes.size());
+                out.println(
+                        r.getId() + Main.SEP +
+                                r.getFechacreacion() + Main.SEP +
+                                safe(r.getInformacion()) + Main.SEP +
+                                r.getEstado() + Main.SEP +
+                                r.getIdUsuarioReporte() + Main.SEP +
+                                nombreUsuario +
+                                Main.JUMP
+                );
 
-                for (Reporte r : reportes) {
-                    // Nombre de la tarea asociada (si existe)
-                    String nombreTarea = "Sin tarea asociada";
-                    if (r.getIdTarea() != null) {
-                        Tarea t = em.find(Tarea.class, r.getIdTarea());
-                        if (t != null) {
-                            nombreTarea = t.getInformacion().length() > 40
-                                    ? t.getInformacion().substring(0, 37) + "..."
-                                    : t.getInformacion();
-                        }
-                    }
-
-                    out.println(
-                            r.getId() + SEP +
-                                    (r.getFechaInicio() != null ? r.getFechaInicio() : "Sin fecha") + SEP +
-                                    (r.getFechaFin() != null ? r.getFechaFin() : "Sin fecha") + SEP +
-                                    (r.getInformacion() != null ? r.getInformacion().replace(SEP, " ") : "Sin contenido") + SEP +
-                                    r.getEstado().toUpperCase() + SEP +
-                                    "por " + creador.getNombre() + SEP +
-                                    nombreTarea
-                    );
-                }
+                System.out.println("Reporte enviado -> " +
+                        r.getId() + Main.SEP + nombreUsuario);
             }
+            out.println("FIN_COMANDO");
 
         } catch (Exception e) {
-            out.println("REPORTES_CREADOS_ERROR" + SEP + "Error: " + e.getMessage());
+            e.printStackTrace();
         }
-        out.println("FIN_COMANDO");
     }
+    private static String safe(String s) {
+        return (s == null ? "" : s);
+    }
+    public static void listarDepartamentosSimple(EntityManager em, PrintWriter out) {
+        try {
+            // JPQL: solo necesitamos el nombre
+            String jpql = "SELECT d.nombre FROM Departamento d ORDER BY d.nombre";
+            List<String> deps = em.createQuery(jpql, String.class).getResultList();
+
+            for (String departamento : deps) {
+                out.println(departamento + Main.JUMP);
+                System.out.println(departamento + Main.JUMP);
+            }
+            out.println("FIN_COMANDO");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
 

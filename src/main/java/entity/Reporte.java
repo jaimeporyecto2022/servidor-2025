@@ -13,11 +13,8 @@ public class Reporte {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "fecha_inicio", nullable = false)
-    private Date fechaInicio;
-
-    @Column(name = "fecha_fin")
-    private Date fechaFin;
+    @Column(name = "fecha_creacion", nullable = false)
+    private Date fechacreacion;
 
     @Column(columnDefinition = "TEXT")
     private String informacion;

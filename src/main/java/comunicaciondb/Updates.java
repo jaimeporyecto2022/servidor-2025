@@ -1,6 +1,8 @@
 package comunicaciondb;
 import entity.*;
 import jakarta.persistence.*;
+import jjn.Main;
+
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -204,77 +206,48 @@ public class Updates {
         }
     }
 
-    public static void actualizarReporteConSync(EntityManager em, PrintWriter out,
-                                                int idReporte,
-                                                String nuevaInformacion,
-                                                String nuevoEstado,
-                                                String fechaInicioStr,
-                                                String fechaFinStr) {
+    public static void actualizarUsuario(EntityManager em, PrintWriter out,
+                                         int idUsuario, String nombre, String mail,
+                                         String rol, String nombreDep, String direccion) {
+
         em.getTransaction().begin();
         try {
-            Reporte reporte = em.find(Reporte.class, idReporte);
-            if (reporte == null) {
-                out.println("UPDATE_REPORTE_ERROR" + SEP + "Reporte no existe");
-                em.getTransaction().rollback();
-                out.println("FIN_COMANDO");
+            Usuario u = em.find(Usuario.class, idUsuario);
+            if (u == null) {
+                out.println("ERROR" + Main.SEP + "Usuario no encontrado");
                 return;
             }
 
-            boolean cambiado = false;
+            // Buscar ID del departamento por nombre
+            TypedQuery<Integer> qDep = em.createQuery(
+                    "SELECT d.id FROM Departamento d WHERE d.nombre = :nom", Integer.class
+            );
+            qDep.setParameter("nom", nombreDep);
 
-            // INFORMACIÓN
-            if (nuevaInformacion != null && !nuevaInformacion.trim().isEmpty()) {
-                reporte.setInformacion(nuevaInformacion.trim());
-                cambiado = true;
+            Integer idDepartamento;
+            try {
+                idDepartamento = qDep.getSingleResult();
+            } catch (Exception ex) {
+                idDepartamento = null; // si no existe, null
             }
 
-            // ESTADO → ¡SINCRONIZACIÓN AUTOMÁTICA CON LA TAREA!
-            if (nuevoEstado != null && !nuevoEstado.isEmpty()) {
-                String estado = nuevoEstado.trim();
-                if (List.of("pendiente", "No puedo hacerlo", "imposible", "completado").contains(estado)) {
-                    reporte.setEstado(estado);
+            // Actualizar usuario
+            u.setNombre(nombre);
+            u.setMail(mail);
+            u.setRol(rol);
+            u.setIdDepartamento(idDepartamento);
+            u.setDireccion(direccion);
 
-                    // SINCRONIZAR TAREA
-                    Tarea tarea = em.find(Tarea.class, reporte.getIdTarea());
-                    if (tarea != null) {
-                        tarea.setEstado(estado);
-                        em.merge(tarea); // Actualizamos la tarea también
-                    }
-
-                    cambiado = true;
-                } else {
-                    out.println("UPDATE_REPORTE_ERROR" + SEP + "Estado inválido");
-                    em.getTransaction().rollback();
-                    out.println("FIN_COMANDO");
-                    return;
-                }
-            }
-
-            // FECHAS (seguras)
-            java.sql.Date fIni = parsearFechaSqlSegura(fechaInicioStr);
-            java.sql.Date fFin = parsearFechaSqlSegura(fechaFinStr);
-            if (fIni != null || fFin != null) {
-                reporte.setFechaInicio(fIni);
-                reporte.setFechaFin(fFin);
-                cambiado = true;
-            }
-
-            if (!cambiado) {
-                out.println("UPDATE_REPORTE_ERROR" + SEP + "No se modificó nada");
-                em.getTransaction().rollback();
-                out.println("FIN_COMANDO");
-                return;
-            }
-
-            em.merge(reporte);
+            em.merge(u);
             em.getTransaction().commit();
 
-
+            out.println("OK");
 
         } catch (Exception e) {
-            if (em.getTransaction().isActive()) em.getTransaction().rollback();
-            out.println("UPDATE_REPORTE_ERROR" + SEP + "Error: " + e.getMessage());
+            em.getTransaction().rollback();
+            System.out.println("ERROR" + Main.SEP + e.getMessage());
         }
     }
+
 
 }
