@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.io.*;
 import java.net.*;
 import java.math.BigDecimal;
+import java.sql.Date;
 
 import static comunicaciondb.Inserts.insertarTarea;
 import static comunicaciondb.Selects.listarUsuariosSimple;
@@ -114,7 +115,21 @@ public class Main {
                     Inserts.insertarUsuario(em, out, nombre, mail, pass, rol, depto, direccion);
 
                 }
+                case "ESTADISTICAS_DEPARTAMENTO" -> {
+                    try {
+                        // partes[1] = fecha inicio
+                        // partes[2] = fecha fin
+                        Date fechaInicio = Date.valueOf(partes[1]);
+                        Date fechaFin = Date.valueOf(partes[2]);
 
+                        Selects.enviarEstadisticasPorDepartamento(em, out, fechaInicio, fechaFin);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        out.println("ESTADISTICAS_DEPARTAMENTO_ERROR" + Main.SEP + e.getMessage());
+                        out.println("FIN_COMANDO");
+                    }
+                }
                 case "INSERT_NOMINA" -> {
                     Inserts.insertarNomina(
                             em,
@@ -203,6 +218,7 @@ public class Main {
 
                     Updates.actualizarUsuario(em, out, id, nombre, mail, rol, nombreDep, direccion);
                 }
+
 
 
                 case "UPDATE_NOMINA" -> {

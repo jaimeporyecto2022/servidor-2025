@@ -5,7 +5,10 @@ import jakarta.persistence.*;
 import jjn.Main;
 
 import java.io.PrintWriter;
-import java.util.List;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.util.*;
+
 import org.mindrot.jbcrypt.BCrypt;
 
 public class Selects {
@@ -358,7 +361,89 @@ public class Selects {
     }
 
 
+    /////////////////////////////////////////Estadisticas///////////////////////////////////////////////////////////////////////////
+    public static void enviarEstadisticasPorDepartamento(EntityManager em, PrintWriter out,
+                                                         Date fechaInicio, Date fechaFin) {
+        try {
+            // 1️⃣ Obtener todos los departamentos
+            List<Departamento> departamentos = em.createQuery(
+                            "SELECT d FROM Departamento d ORDER BY d.nombre", Departamento.class)
+                    .getResultList();
 
+            for (Departamento dept : departamentos) {
+                Integer idDept = dept.getId();
+                String nombreDept = dept.getNombre();
 
+                // 2️⃣ Total tareas en el rango
+                Long totalTareas = em.createQuery(
+                                "SELECT COUNT(t.id) FROM Tarea t JOIN Usuario u " +
+                                        "ON t.idUsuarioAsignado = u.id " +
+                                        "WHERE u.idDepartamento = :idDept AND t.fechaCreacion BETWEEN :fi AND :ff",
+                                Long.class)
+                        .setParameter("idDept", idDept)
+                        .setParameter("fi", fechaInicio)
+                        .setParameter("ff", fechaFin)
+                        .getSingleResult();
+
+                // 3️⃣ Tareas completadas
+                Long tareasCompletadas = em.createQuery(
+                                "SELECT COUNT(t.id) FROM Tarea t JOIN Usuario u " +
+                                        "ON t.idUsuarioAsignado = u.id " +
+                                        "WHERE u.idDepartamento = :idDept AND t.estado='completado' " +
+                                        "AND t.fechaCreacion BETWEEN :fi AND :ff",
+                                Long.class)
+                        .setParameter("idDept", idDept)
+                        .setParameter("fi", fechaInicio)
+                        .setParameter("ff", fechaFin)
+                        .getSingleResult();
+
+                // 4️⃣ Tareas completadas fuera de tiempo
+                Long tareasFueraTiempo = em.createQuery(
+                                "SELECT COUNT(t.id) FROM Tarea t JOIN Usuario u " +
+                                        "ON t.idUsuarioAsignado = u.id " +
+                                        "WHERE u.idDepartamento = :idDept AND t.estado='completado' " +
+                                        "AND t.fechaCreacion BETWEEN :fi AND :ff " +
+                                        "AND (SELECT MAX(r.fechacreacion) FROM Reporte r WHERE r.idTarea = t.id AND r.estado='completado') > t.fechaFin",
+                                Long.class)
+                        .setParameter("idDept", idDept)
+                        .setParameter("fi", fechaInicio)
+                        .setParameter("ff", fechaFin)
+                        .getSingleResult();
+
+                // 5️⃣ Sumatorio de nóminas
+                BigDecimal totalNominas = em.createQuery(
+                                "SELECT COALESCE(SUM(n.importe), 0) FROM Nomina n JOIN Usuario u " +
+                                        "ON n.idUsuario = u.id " +
+                                        "WHERE u.idDepartamento = :idDept AND n.fecha BETWEEN :fi AND :ff",
+                                BigDecimal.class)
+                        .setParameter("idDept", idDept)
+                        .setParameter("fi", fechaInicio)
+                        .setParameter("ff", fechaFin)
+                        .getSingleResult();
+
+                long totalT = totalTareas != null ? totalTareas : 0L;
+                long totalComp = tareasCompletadas != null ? tareasCompletadas : 0L;
+                long totalFuera = tareasFueraTiempo != null ? tareasFueraTiempo : 0L;
+                BigDecimal nominas = totalNominas != null ? totalNominas : BigDecimal.ZERO;
+
+                out.println(nombreDept + Main.SEP +
+                        totalT + Main.SEP +
+                        totalComp + Main.SEP +
+                        totalFuera + Main.SEP +
+                        nominas + Main.JUMP);
+            }
+            out.println("FIN_COMANDO");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("ESTADISTICAS_DEPARTAMENTO_ERROR" + Main.SEP + e.getMessage());
+            //out.println("FIN_COMANDO");
+        }
+    }
 
 }
+
+
+
+
+
