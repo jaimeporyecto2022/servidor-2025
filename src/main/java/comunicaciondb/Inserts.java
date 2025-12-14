@@ -193,13 +193,14 @@ public class Inserts {
             if (tarea.getEstado().equals("completado")) {
                 System.out.println("nuevatarea en supuestamente tarea completada");
             }else {
+                System.out.println("entra en actualizar el estado de tarea");
                 tarea.setEstado(reporte.getEstado());
             }
 
 
             // ACTUALIZAR ESTADO DE LA TAREA AL MISMO DEL REPORTE
             em.merge(tarea);
-
+            em.persist(reporte);
             em.getTransaction().commit();
 
 

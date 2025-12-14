@@ -168,15 +168,15 @@ public class Main {
                 }
 
                 case "CREAR_REPORTE" -> {
-                    String informacion = partes.length > 3 ? partes[3] : "";
-                    String estado = partes.length > 4 ? partes[4] : "pendiente";
-                    String fIni = partes.length > 5 ? partes[5] : null;
-                    String fFin = partes.length > 6 ? partes[6] : null;
-
+                    String informacion = partes[2] ;
+                    String estado = partes[3];
+System.out.println("entra en crear reporte con "+partes.length);
                     Inserts.insertarReporteYActualizarTarea(em, out,
+                            Integer.parseInt(partes[4]),
                             Integer.parseInt(partes[1]),
-                            Integer.parseInt(partes[2]),
-                            informacion, estado);
+                            informacion,
+                            estado
+                    );
                 }
                 //======================================= DELETE ===========================================================================
                 case "ELIMINAR_USUARIO" -> {

@@ -239,6 +239,7 @@ public class Selects {
 
                     out.println(
                             t.getId() + SEP +
+                                    t.getTitulo()+ SEP +
                                     t.getInformacion().replace(SEP, " ") + SEP +
                                     (t.getFechaInicio() != null ? t.getFechaInicio() : "Sin fecha") + SEP +
                                     (t.getFechaFin() != null ? t.getFechaFin() : "Sin fecha") + SEP +
@@ -328,8 +329,7 @@ public class Selects {
                                 safe(r.getInformacion()) + Main.SEP +
                                 r.getEstado() + Main.SEP +
                                 r.getIdUsuarioReporte() + Main.SEP +
-                                nombreUsuario +
-                                Main.JUMP
+                                nombreUsuario + Main.JUMP
                 );
 
                 System.out.println("Reporte enviado -> " +
